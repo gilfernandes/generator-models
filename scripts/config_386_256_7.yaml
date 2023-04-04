@@ -1,0 +1,14 @@
+batch_size: 64
+block_size: 256
+max_iters: 10000
+eval_interval: 300
+learning_rate: 3e-4
+eval_iters: 200
+n_embed: 384
+n_layer: 7
+n_head: 6
+dropout: 0.2
+generated_characters: 2000
+model_save_threshold: 2.0
+
+input_file: "input.txt"

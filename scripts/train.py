@@ -70,7 +70,6 @@ def save_model(model, cfg, losses):
     logging.info(f"Model saved to {model_file}")
     
     
-    
 def generate_sample(model, cfg):
     logging.info("Starting generation")
     context = torch.zeros((1, 1), dtype=torch.long, device=cfg.device)
@@ -82,6 +81,33 @@ def generate_sample(model, cfg):
     with open(f'../generations/output_{identifier}.txt', 'w') as f:
         f.write(generated_text)
 
+        
+def init_normal_token(cfg: Config):
+    text, chars, vocab_size = read_chars(cfg.data_folder/cfg.input_file)
+    cfg.vocab_size = vocab_size
+    # create a mapping of characters to integers
+    stoi, itoi = create_vocab_dicts(chars)
+    def encode(s): return [stoi[c] for c in s]
+    def decode(l): return ''.join([itoi[i] for i in l])
+    return text, vocab_size, encode, decode, itoi
+
+
+def init_tiktoken(cfg: Config):
+    with open(cfg.data_folder/cfg.input_file, 'r', encoding='utf-8') as f:
+        text = f.read()
+    enc = tiktoken.get_encoding("cl100k_base")
+    encoded = enc.encode(text)
+    all_chars = sorted(set(encoded))
+    stoi = {c:i for i, c in enumerate(all_chars)}
+    atoi = {i:c for i, c in enumerate(all_chars)}
+    vocab_size = len(all_chars)
+    print(f"Vocab size: {vocab_size}")
+    cfg.vocab_size = vocab_size
+    def encode(s): return [stoi[e] for e in enc.encode(s)]
+    def decode(l): return enc.decode([atoi[e] for e in l])
+    print("Initialized Tiktoken")
+    return text, vocab_size, encode, decode, None
+
 
 if __name__ == "__main__":
     
@@ -92,20 +118,20 @@ if __name__ == "__main__":
     cfg = Config(sys.argv[1])
     torch.manual_seed(cfg.manual_seed)
 
-    text, chars, vocab_size = read_chars(cfg.data_folder/cfg.input_file)
-    cfg.vocab_size = vocab_size
-
-    # create a mapping of characters to integers
-    stoi, itoi = create_vocab_dicts(chars)
-    def encode(s): return [stoi[c] for c in s]
-    def decode(l): return ''.join([itoi[i] for i in l])
+    if cfg.tokenizer == 'tiktoken':
+        # Init tik token
+        import tiktoken
+        text, vocab_size, encode, decode, itoi = init_tiktoken(cfg)
+    else:
+        text, vocab_size, encode, decode, itoi = init_normal_token(cfg)
 
     # Write the dictionary with the key char codes
     def remove_extension(file_name):
         return re.sub(r"(.+)\..+", r"\1", file_name)
         
-    with open(f'{remove_extension(cfg.input_file)}_itoi.pickle', 'wb') as handle:
-        pickle.dump(itoi, handle, protocol=pickle.HIGHEST_PROTOCOL)
+    if itoi is not None:
+        with open(f'{remove_extension(cfg.input_file)}_itoi.pickle', 'wb') as handle:
+            pickle.dump(itoi, handle, protocol=pickle.HIGHEST_PROTOCOL)
     
     train_data, val_data = train_test_split(text)
     

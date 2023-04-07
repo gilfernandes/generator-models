@@ -50,3 +50,5 @@ coverage.xml
 docs/_build/
 
 *.pth
+*.zip
+.ipynb_checkpoints/*

@@ -24,6 +24,7 @@ class Config():
         self.input_file = conf['input_file']
         self.generated_characters = conf['generated_characters']
         self.model_save_threshold = conf['model_save_threshold']
+        self.tokenizer = conf.get('tokenizer')
         
         self.data_folder = Path("../data")
         assert self.data_folder.exists()
